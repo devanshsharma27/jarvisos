@@ -1,16 +1,20 @@
 #include "vga.h"
 #include "idt.h"
+#include "isr.h"
+#include "shell.h"
 
 void kernel_main(void) {
     clear_screen();
-    print("Welcome to JarvisOS!\n");
+    print("JarvisOS 0.2.0 booting...\n");
 
-    print("Installing IDT... ");
     idt_install();
-    print("done.\n");
+    isr_install();
+    __asm__ volatile ("sti");
 
-    print("IDT loaded. CPU now knows where its interrupt table is.\n");
-    print("Next: PIC remapping and the keyboard handler.\n");
+    print("Interrupts online. Keyboard ready.\n");
+    print("Type 'help' for commands.\n");
+
+    shell_init();
 
     while (1) { __asm__("hlt"); }
 }

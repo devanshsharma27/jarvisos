@@ -58,3 +58,8 @@ void print_int(int n) {
     while (n > 0) { buf[len++] = '0' + (n % 10); n /= 10; }
     while (len > 0) putchar(buf[--len]);
 }
+void backspace(void) {
+    if (cursor_col == 0) return;   // don't erase past line start
+    cursor_col--;
+    vga[cursor_row * VGA_WIDTH + cursor_col] = vga_entry(' ', color);
+}
