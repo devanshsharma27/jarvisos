@@ -1,9 +1,9 @@
-kkkkkkCC = gcc
+CC = gcc
 LD = ld
 CFLAGS = -m32 -ffreestanding -Wall -Wextra
 LDFLAGS = -m elf_i386 -T linker.ld
 
-OBJS = boot.o kernel.o vga.o idt.o idt_load.o isr.o isr_asm.o keyboard.o shell.o util.o
+OBJS = boot.o kernel.o vga.o idt.o idt_load.o isr.o isr_asm.o keyboard.o shell.o util.o memory.o
 
 all: kernel.bin
 
@@ -36,6 +36,9 @@ shell.o: shell.c
 
 util.o: util.c
 	$(CC) $(CFLAGS) -c util.c -o util.o
+
+memory.o: memory.c
+	$(CC) $(CFLAGS) -c memory.c -o memory.o
 
 kernel.bin: $(OBJS)
 	$(LD) $(LDFLAGS) -o kernel.bin $(OBJS)

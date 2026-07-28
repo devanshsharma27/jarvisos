@@ -58,8 +58,16 @@ void print_int(int n) {
     while (n > 0) { buf[len++] = '0' + (n % 10); n /= 10; }
     while (len > 0) putchar(buf[--len]);
 }
+
+void print_hex(uint32_t n) {
+    const char* digits = "0123456789ABCDEF";
+    print("0x");
+    for (int i = 28; i >= 0; i -= 4)
+        putchar(digits[(n >> i) & 0xF]);
+}
+
 void backspace(void) {
-    if (cursor_col == 0) return;   // don't erase past line start
+    if (cursor_col == 0) return;
     cursor_col--;
     vga[cursor_row * VGA_WIDTH + cursor_col] = vga_entry(' ', color);
 }

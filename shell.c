@@ -2,14 +2,11 @@
 #include "vga.h"
 #include "util.h"
 #include "io.h"
-
-#define MAX_CMDS 32
+#include "memory.h"
 
 static void shell_prompt(void) {
     print("jarvis> ");
 }
-
-// ---- Commands ----
 
 static void cmd_help(const char* args) {
     (void)args;
@@ -21,6 +18,8 @@ static void cmd_help(const char* args) {
     print("  version  - kernel version\n");
     print("  calc     - calc 2 + 3  (also - * /)\n");
     print("  banner   - show the banner\n");
+    print("  meminfo  - memory statistics\n");
+    print("  memmap   - physical memory regions\n");
     print("  reboot   - restart the machine\n");
     print("  halt     - stop the CPU\n");
 }
@@ -28,12 +27,12 @@ static void cmd_help(const char* args) {
 static void cmd_about(const char* args) {
     (void)args;
     print("JarvisOS - a hobby operating system built from scratch in C & asm.\n");
-    print("Interrupt-driven keyboard, VGA driver, and now a shell.\n");
+    print("Interrupt-driven keyboard, VGA driver, shell, memory detection.\n");
 }
 
 static void cmd_version(const char* args) {
     (void)args;
-    print("JarvisOS 0.2.0 (32-bit x86)\n");
+    print("JarvisOS 0.3.0 (32-bit x86)\n");
 }
 
 static void cmd_echo(const char* args) {
@@ -51,9 +50,7 @@ static void cmd_banner(const char* args) {
 }
 
 static void cmd_calc(const char* args) {
-    // Expected: "N op M" e.g. "12 + 5"
     int a = atoi(args);
-    // advance past first number
     while (*args == ' ') args++;
     if (*args == '-') args++;
     while (*args >= '0' && *args <= '9') args++;
@@ -78,10 +75,29 @@ static void cmd_calc(const char* args) {
     print("\n");
 }
 
+static void cmd_meminfo(const char* args) {
+    (void)args;
+    print("Total reported : ");
+    print_int(mem_total_kb());
+    print(" KB\n");
+    print("Usable RAM     : ");
+    print_int(mem_usable_kb());
+    print(" KB (");
+    print_int(mem_usable_kb() / 1024);
+    print(" MB)\n");
+    print("Highest address: ");
+    print_hex(mem_highest_addr());
+    print("\n");
+}
+
+static void cmd_memmap(const char* args) {
+    (void)args;
+    memory_print_map();
+}
+
 static void cmd_reboot(const char* args) {
     (void)args;
     print("Rebooting...\n");
-    // Pulse the CPU reset line via the keyboard controller
     outb(0x64, 0xFE);
 }
 
@@ -96,14 +112,9 @@ static void cmd_clear(const char* args) {
     clear_screen();
 }
 
-// ---- Dispatch ----
-
 void shell_execute(const char* line) {
-    // Skip empty lines
     if (line[0] == '\0') { shell_prompt(); return; }
 
-    // Split "command args..." at the first space
-    // Find the command word length
     int i = 0;
     char cmd[32];
     while (line[i] && line[i] != ' ' && i < 31) { cmd[i] = line[i]; i++; }
@@ -117,6 +128,8 @@ void shell_execute(const char* line) {
     else if (strcmp(cmd, "version") == 0) cmd_version(args);
     else if (strcmp(cmd, "calc") == 0)    cmd_calc(args);
     else if (strcmp(cmd, "banner") == 0)  cmd_banner(args);
+    else if (strcmp(cmd, "meminfo") == 0) cmd_meminfo(args);
+    else if (strcmp(cmd, "memmap") == 0)  cmd_memmap(args);
     else if (strcmp(cmd, "reboot") == 0)  cmd_reboot(args);
     else if (strcmp(cmd, "halt") == 0)    cmd_halt(args);
     else {
@@ -132,4 +145,3 @@ void shell_init(void) {
     print("\n");
     shell_prompt();
 }
-
