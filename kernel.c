@@ -5,10 +5,11 @@
 #include "shell.h"
 #include "memory.h"
 #include "multiboot.h"
+#include "pmm.h"
 
 void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     clear_screen();
-    print("JarvisOS 0.3.0 booting...\n");
+    print("JarvisOS 0.4.0 booting...\n");
 
     if (magic != MULTIBOOT_MAGIC) {
         print("FATAL: not booted by a Multiboot loader.\n");
@@ -19,6 +20,13 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     print("Memory map parsed: ");
     print_int(mem_usable_kb() / 1024);
     print(" MB usable RAM detected.\n");
+
+    pmm_init();
+    print("Physical allocator online: ");
+    print_int(pmm_free_frames());
+    print(" free frames (");
+    print_int(pmm_free_frames() * 4 / 1024);
+    print(" MB).\n");
 
     idt_install();
     isr_install();

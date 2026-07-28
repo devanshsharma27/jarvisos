@@ -3,6 +3,7 @@
 #include "util.h"
 #include "io.h"
 #include "memory.h"
+#include "pmm.h"
 
 static void shell_prompt(void) {
     print("jarvis> ");
@@ -20,6 +21,9 @@ static void cmd_help(const char* args) {
     print("  banner   - show the banner\n");
     print("  meminfo  - memory statistics\n");
     print("  memmap   - physical memory regions\n");
+    print("  frames   - frame allocator status\n");
+    print("  alloc    - allocate one 4KB frame\n");
+    print("  free A   - free the frame at address A (hex, e.g. 0x200000)\n");
     print("  reboot   - restart the machine\n");
     print("  halt     - stop the CPU\n");
 }
@@ -27,12 +31,12 @@ static void cmd_help(const char* args) {
 static void cmd_about(const char* args) {
     (void)args;
     print("JarvisOS - a hobby operating system built from scratch in C & asm.\n");
-    print("Interrupt-driven keyboard, VGA driver, shell, memory detection.\n");
+    print("Drivers, interrupts, shell, and a physical memory manager.\n");
 }
 
 static void cmd_version(const char* args) {
     (void)args;
-    print("JarvisOS 0.3.0 (32-bit x86)\n");
+    print("JarvisOS 0.4.0 (32-bit x86)\n");
 }
 
 static void cmd_echo(const char* args) {
@@ -88,11 +92,67 @@ static void cmd_meminfo(const char* args) {
     print("Highest address: ");
     print_hex(mem_highest_addr());
     print("\n");
+    print("Free frames    : ");
+    print_int(pmm_free_frames());
+    print(" of ");
+    print_int(pmm_total_frames());
+    print("\n");
 }
 
 static void cmd_memmap(const char* args) {
     (void)args;
     memory_print_map();
+}
+
+static void cmd_frames(const char* args) {
+    (void)args;
+    print("Frame size   : 4096 bytes\n");
+    print("Total frames : ");
+    print_int(pmm_total_frames());
+    print("\n");
+    print("Used frames  : ");
+    print_int(pmm_used_frames());
+    print(" (");
+    print_int(pmm_used_frames() * 4 / 1024);
+    print(" MB)\n");
+    print("Free frames  : ");
+    print_int(pmm_free_frames());
+    print(" (");
+    print_int(pmm_free_frames() * 4 / 1024);
+    print(" MB)\n");
+    print("Bitmap at    : ");
+    print_hex(pmm_bitmap_addr());
+    print("  size ");
+    print_int(pmm_bitmap_size());
+    print(" bytes\n");
+}
+
+static void cmd_alloc(const char* args) {
+    (void)args;
+    uint32_t addr = pmm_alloc_frame();
+    if (addr == 0) {
+        print("out of memory!\n");
+        return;
+    }
+    print("allocated frame at ");
+    print_hex(addr);
+    print("   (free now: ");
+    print_int(pmm_free_frames());
+    print(")\n");
+}
+
+static void cmd_free(const char* args) {
+    uint32_t addr = (uint32_t) atoi_hex(args);
+    if (addr == 0) {
+        print("usage: free 0x200000\n");
+        return;
+    }
+    pmm_free_frame(addr);
+    print("freed frame at ");
+    print_hex(addr);
+    print("   (free now: ");
+    print_int(pmm_free_frames());
+    print(")\n");
 }
 
 static void cmd_reboot(const char* args) {
@@ -130,6 +190,9 @@ void shell_execute(const char* line) {
     else if (strcmp(cmd, "banner") == 0)  cmd_banner(args);
     else if (strcmp(cmd, "meminfo") == 0) cmd_meminfo(args);
     else if (strcmp(cmd, "memmap") == 0)  cmd_memmap(args);
+    else if (strcmp(cmd, "frames") == 0)  cmd_frames(args);
+    else if (strcmp(cmd, "alloc") == 0)   cmd_alloc(args);
+    else if (strcmp(cmd, "free") == 0)    cmd_free(args);
     else if (strcmp(cmd, "reboot") == 0)  cmd_reboot(args);
     else if (strcmp(cmd, "halt") == 0)    cmd_halt(args);
     else {

@@ -64,3 +64,8 @@ void memory_print_map(void) {
 uint32_t mem_total_kb(void)     { return total_kb; }
 uint32_t mem_usable_kb(void)    { return usable_kb; }
 uint32_t mem_highest_addr(void) { return highest; }
+
+int      mem_region_count(void)     { return region_count; }
+uint32_t mem_region_base(int i)     { return regions[i].base; }
+uint32_t mem_region_len(int i)      { return regions[i].len; }
+uint32_t mem_region_type(int i)     { return regions[i].type; }

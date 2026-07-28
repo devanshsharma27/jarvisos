@@ -5,4 +5,7 @@ SECTIONS {
     .rodata : { *(.rodata) }
     .data   : { *(.data) }
     .bss    : { *(.bss) }
+    . = ALIGN(4096);
+    kernel_end = .;
 }
+
