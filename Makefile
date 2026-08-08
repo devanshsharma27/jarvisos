@@ -3,7 +3,8 @@ LD = ld
 CFLAGS = -m32 -ffreestanding -Wall -Wextra
 LDFLAGS = -m elf_i386 -T linker.ld
 
-OBJS = boot.o kernel.o vga.o idt.o idt_load.o isr.o isr_asm.o keyboard.o shell.o util.o memory.o pmm.o
+OBJS = boot.o kernel.o vga.o idt.o idt_load.o isr.o isr_asm.o keyboard.o shell.o util.o \
+       memory.o pmm.o serial.o paging.o heap.o timer.o task.o switch.o
 
 all: kernel.bin
 
@@ -42,6 +43,24 @@ memory.o: memory.c
 
 pmm.o: pmm.c
 	$(CC) $(CFLAGS) -c pmm.c -o pmm.o
+
+serial.o: serial.c
+	$(CC) $(CFLAGS) -c serial.c -o serial.o
+
+paging.o: paging.c
+	$(CC) $(CFLAGS) -c paging.c -o paging.o
+
+heap.o: heap.c
+	$(CC) $(CFLAGS) -c heap.c -o heap.o
+
+timer.o: timer.c
+	$(CC) $(CFLAGS) -c timer.c -o timer.o
+
+task.o: task.c
+	$(CC) $(CFLAGS) -c task.c -o task.o
+
+switch.o: switch.asm
+	nasm -f elf32 switch.asm -o switch.o
 
 kernel.bin: $(OBJS)
 	$(LD) $(LDFLAGS) -o kernel.bin $(OBJS)

@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "vga.h"
+#include "serial.h"
 
 #define VGA_WIDTH  80
 #define VGA_HEIGHT 25
@@ -30,6 +31,7 @@ static void scroll(void) {
 }
 
 void putchar(char c) {
+    serial_write_char(c);   // mirror every character to COM1
     if (c == '\n') {
         cursor_col = 0;
         cursor_row++;
@@ -67,6 +69,7 @@ void print_hex(uint32_t n) {
 }
 
 void backspace(void) {
+    serial_write("\b \b");  // erase on the serial terminal too
     if (cursor_col == 0) return;
     cursor_col--;
     vga[cursor_row * VGA_WIDTH + cursor_col] = vga_entry(' ', color);

@@ -3,6 +3,9 @@
 #include "vga.h"
 #include "io.h"
 #include "keyboard.h"
+#include "serial.h"
+#include "paging.h"
+#include "timer.h"
 
 extern void isr0();  extern void isr1();  extern void isr2();  extern void isr3();
 extern void isr4();  extern void isr5();  extern void isr6();  extern void isr7();
@@ -85,17 +88,56 @@ void isr_install(void) {
     idt_set_gate(47, (uint32_t)irq15, 0x08, 0x8E);
 }
 
+static const char* exception_names[32] = {
+    "divide by zero", "debug", "non-maskable interrupt", "breakpoint",
+    "overflow", "bound range exceeded", "invalid opcode", "device not available",
+    "double fault", "coprocessor segment overrun", "invalid TSS",
+    "segment not present", "stack-segment fault", "general protection fault",
+    "page fault", "reserved", "x87 floating-point", "alignment check",
+    "machine check", "SIMD floating-point", "virtualization", "control protection",
+    "reserved", "reserved", "reserved", "reserved", "reserved", "reserved",
+    "reserved", "reserved", "reserved", "reserved"
+};
+
 void isr_handler(struct registers* r) {
-    print("Received CPU exception: ");
+    if (r->int_no == 3) {           // breakpoint: report it and carry on
+        print("[breakpoint at ");
+        print_hex(r->eip);
+        print("]\n");
+        return;
+    }
+
+    if (r->int_no == 14)
+        page_fault_handler(r->err_code);
+
+    print("\n*** CPU EXCEPTION ");
     print_int(r->int_no);
-    print("\n");
+    print(": ");
+    print(r->int_no < 32 ? exception_names[r->int_no] : "unknown");
+    print(" ***\n  eip: ");
+    print_hex(r->eip);
+    print("  err: ");
+    print_hex(r->err_code);
+    print("\nSystem halted.\n");
+
+    // Returning would re-run the faulting instruction and fault forever.
+    __asm__ volatile ("cli");
+    while (1) __asm__ volatile ("hlt");
 }
 
 void irq_handler(struct registers* r) {
-    if (r->int_no == 33) {
-        keyboard_handler();
-    }
+    // Acknowledge the PIC *first*. The timer handler can switch to another
+    // task and never return here, and a missed end-of-interrupt would leave
+    // the controller convinced IRQ0 is still in service -- no more ticks.
     if (r->int_no >= 40)
-        outb(0xA0, 0x20);
-    outb(0x20, 0x20);
+        outb(0xA0, 0x20);       // slave PIC
+    outb(0x20, 0x20);           // master PIC
+
+    if (r->int_no == 32) {
+        timer_tick();           // IRQ0: PIT, drives the scheduler
+    } else if (r->int_no == 33) {
+        keyboard_handler();     // IRQ1: PS/2 keyboard
+    } else if (r->int_no == 36) {
+        serial_handler();       // IRQ4: byte arrived on COM1
+    }
 }

@@ -4,11 +4,7 @@
 #include "keyboard.h"
 #include "shell.h"
 
-#define BUF_SIZE 256
-
-static char line_buf[BUF_SIZE];
-static int  line_len = 0;
-static int  shift_down = 0;
+static int shift_down = 0;
 
 static const char normal_map[] = {
     0,  0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 0,
@@ -37,10 +33,7 @@ void keyboard_handler(void) {
 
     // Backspace (scancode 0x0E)
     if (sc == 0x0E) {
-        if (line_len > 0) {
-            line_len--;
-            backspace();              // visual erase (added to vga)
-        }
+        shell_push_char('\b');
         return;
     }
 
@@ -49,16 +42,6 @@ void keyboard_handler(void) {
         c = shift_down ? shift_map[sc] : normal_map[sc];
     if (c == 0) return;
 
-    if (c == '\n') {
-        putchar('\n');
-        line_buf[line_len] = '\0';
-        line_len = 0;
-        shell_execute(line_buf);      // hand the finished line to the shell
-        return;
-    }
-
-    if (line_len < BUF_SIZE - 1) {
-        line_buf[line_len++] = c;
-        putchar(c);                   // echo as you type
-    }
+    // Queue it for the kernel task; the line editor runs outside interrupts.
+    shell_push_char(c);
 }
